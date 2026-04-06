@@ -181,15 +181,17 @@ main,
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  height: 56px;
+  width: 260px;
+  height: 64px;
   overflow: hidden;
 }
 
 .brand-logo {
-  width: 240px;
-  height: 56px;
-  object-fit: cover;
-  object-position: center bottom;
+  width: 260px;
+  height: 260px;
+  object-fit: contain;
+  object-position: center;
+  transform: translateY(-86px);
   filter: drop-shadow(0 0 12px rgba(255, 122, 26, 0.45));
 }
 
@@ -922,12 +924,14 @@ textarea:focus {
   }
 
   .brand {
+    width: 176px;
     height: 42px;
   }
 
   .brand-logo {
-    width: 170px;
-    height: 42px;
+    width: 176px;
+    height: 176px;
+    transform: translateY(-58px);
   }
 
   .nav {
