@@ -181,17 +181,16 @@ main,
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  width: 260px;
+  width: 250px;
   height: 64px;
   overflow: hidden;
 }
 
 .brand-logo {
-  width: 260px;
-  height: 260px;
-  object-fit: contain;
-  object-position: center;
-  transform: translateY(-86px);
+  width: 250px;
+  height: 64px;
+  object-fit: cover;
+  object-position: center 52%;
   filter: drop-shadow(0 0 12px rgba(255, 122, 26, 0.45));
 }
 
@@ -930,8 +929,9 @@ textarea:focus {
 
   .brand-logo {
     width: 176px;
-    height: 176px;
-    transform: translateY(-58px);
+    height: 42px;
+    object-fit: cover;
+    object-position: center 52%;
   }
 
   .nav {
