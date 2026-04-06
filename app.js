@@ -1,4 +1,5 @@
 const STORAGE_KEY = "2k22-content";
+const USER_SESSION_KEY = "2k22-user-session";
 const ADMIN_CREDENTIALS = {
   user: "admin",
   pass: "admin123",
@@ -130,6 +131,103 @@ const closeTicketDialog = document.getElementById("closeTicketDialog");
 const ticketForm = document.getElementById("ticketForm");
 const ticketFeedback = document.getElementById("ticketFeedback");
 const ticketEventName = document.getElementById("ticketEventName");
+
+const authButton = document.getElementById("authButton");
+const userLoginDialog = document.getElementById("userLoginDialog");
+const closeUserLoginDialog = document.getElementById("closeUserLoginDialog");
+const userLoginForm = document.getElementById("userLoginForm");
+const userLoginFeedback = document.getElementById("userLoginFeedback");
+
+function readUserSession() {
+  const raw = localStorage.getItem(USER_SESSION_KEY);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.name !== "string" || typeof parsed.email !== "string") {
+      return null;
+    }
+    return parsed;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function saveUserSession(session) {
+  localStorage.setItem(USER_SESSION_KEY, JSON.stringify(session));
+}
+
+function clearUserSession() {
+  localStorage.removeItem(USER_SESSION_KEY);
+}
+
+function renderAuthState() {
+  if (!authButton) {
+    return;
+  }
+
+  const session = readUserSession();
+  authButton.classList.remove("logged");
+
+  if (!session) {
+    authButton.textContent = "Iniciar sesion";
+    return;
+  }
+
+  const shortName = session.name.length > 16 ? `${session.name.slice(0, 16)}...` : session.name;
+  authButton.textContent = `Hola, ${shortName}`;
+  authButton.classList.add("logged");
+}
+
+function handleUserLoginSubmit(event) {
+  event.preventDefault();
+  if (!userLoginForm) {
+    return;
+  }
+
+  const data = new FormData(userLoginForm);
+  const inputName = String(data.get("name") || "").trim();
+  const email = String(data.get("email") || "").trim();
+  const password = String(data.get("password") || "").trim();
+
+  if (!email || !password) {
+    setFeedback(userLoginFeedback, "Completa email y contrasena.", "error");
+    return;
+  }
+
+  const derivedName = inputName || email.split("@")[0] || "Usuario";
+  saveUserSession({
+    name: derivedName,
+    email,
+  });
+
+  setFeedback(userLoginFeedback, "Sesion iniciada.", "ok");
+  renderAuthState();
+
+  setTimeout(() => {
+    if (userLoginDialog) {
+      userLoginDialog.close();
+    }
+    userLoginForm.reset();
+    setFeedback(userLoginFeedback, "", "");
+  }, 250);
+}
+
+function handleAuthButtonClick() {
+  const session = readUserSession();
+  if (!session) {
+    if (userLoginDialog) {
+      setFeedback(userLoginFeedback, "", "");
+      userLoginDialog.showModal();
+    }
+    return;
+  }
+
+  clearUserSession();
+  renderAuthState();
+}
 
 function initColorBendsBackground() {
   const canvas = document.getElementById("colorBendsCanvas");
@@ -833,6 +931,14 @@ on(closeTicketDialog, "click", () => {
   }
 });
 on(ticketForm, "submit", handleTicketPurchase);
+on(authButton, "click", handleAuthButtonClick);
+on(closeUserLoginDialog, "click", () => {
+  if (userLoginDialog) {
+    userLoginDialog.close();
+  }
+});
+on(userLoginForm, "submit", handleUserLoginSubmit);
 
 renderAll();
+renderAuthState();
 initColorBendsBackground();

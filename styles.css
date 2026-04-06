@@ -211,6 +211,25 @@ main,
   justify-content: center;
 }
 
+.nav-auth {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.btn-auth {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.btn-auth.logged {
+  background: rgba(255, 122, 26, 0.2);
+  border: 1px solid rgba(255, 160, 86, 0.55);
+  color: #ffe6d0;
+}
+
 .nav-links a {
   text-decoration: none;
   color: var(--ink);
@@ -799,6 +818,10 @@ textarea:focus {
     min-width: 190px;
     background: rgba(14, 14, 19, 0.95);
     backdrop-filter: blur(8px);
+  }
+
+  .nav-auth {
+    margin-left: 0;
   }
 
   .nav-links.open {

@@ -36,6 +36,9 @@
           <li><a href="events.html">Eventos</a></li>
           <li><a href="support.html" class="active-link">Soporte</a></li>
         </ul>
+        <div class="nav-auth">
+          <button class="btn btn-ghost btn-auth" id="authButton" type="button">Iniciar sesion</button>
+        </div>
       </nav>
 
       <section class="hero">
@@ -99,6 +102,27 @@
     <footer class="site-footer">
       <p>2k22 2026. Todos los derechos reservados.</p>
     </footer>
+
+    <dialog id="userLoginDialog" class="modal">
+      <form method="dialog" class="modal-card" id="userLoginForm">
+        <h3>Iniciar sesion</h3>
+
+        <label for="loginName">Nombre</label>
+        <input id="loginName" name="name" type="text" placeholder="Tu nombre" />
+
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" name="email" type="email" placeholder="tu@email.com" required />
+
+        <label for="loginPassword">Contrasena</label>
+        <input id="loginPassword" name="password" type="password" required />
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="closeUserLoginDialog">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Entrar</button>
+        </div>
+        <p class="form-feedback" id="userLoginFeedback" aria-live="polite"></p>
+      </form>
+    </dialog>
 
     <script src="app.js?v=20260406-1"></script>
   </body>
