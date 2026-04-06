@@ -1,8 +1,12 @@
 const STORAGE_KEY = "2k22-content";
 const USER_SESSION_KEY = "2k22-user-session";
-const ADMIN_CREDENTIALS = {
-  user: "admin",
-  pass: "admin123",
+const USERS_KEY = "2k22-users";
+
+const CREATOR_ACCOUNT = {
+  name: "2K22",
+  password: "Aguselguay",
+  email: "creator@2k22.local",
+  role: "creator",
 };
 
 const placeholderWide =
@@ -88,9 +92,11 @@ const initialData = {
 
 let selectedEvent = null;
 let carouselIndex = 0;
+let pendingDeleteAction = null;
 
 const menuToggle = document.getElementById("menuToggle");
 const navLinks = document.getElementById("navLinks");
+const adminNavItem = document.getElementById("adminNavItem");
 
 const carouselImage = document.getElementById("carouselImage");
 const carouselTitle = document.getElementById("carouselTitle");
@@ -107,14 +113,13 @@ const teamGrid = document.getElementById("teamGrid");
 const supportForm = document.getElementById("supportForm");
 const supportFeedback = document.getElementById("supportFeedback");
 
-const openAdminButton = document.getElementById("openAdminButton");
-const adminDialog = document.getElementById("adminDialog");
-const closeAdminDialog = document.getElementById("closeAdminDialog");
-const adminLoginForm = document.getElementById("adminLoginForm");
-const adminLoginFeedback = document.getElementById("adminLoginFeedback");
+const adminArea = document.getElementById("adminArea");
+const adminDenied = document.getElementById("adminDenied");
+const creatorRoleBlock = document.getElementById("creatorRoleBlock");
+const roleSearchForm = document.getElementById("roleSearchForm");
+const roleSearchResults = document.getElementById("roleSearchResults");
+const roleSearchFeedback = document.getElementById("roleSearchFeedback");
 
-const adminPanelDialog = document.getElementById("adminPanelDialog");
-const closeAdminPanel = document.getElementById("closeAdminPanel");
 const adminEventForm = document.getElementById("adminEventForm");
 const adminPanelFeedback = document.getElementById("adminPanelFeedback");
 const adminSlideForm = document.getElementById("adminSlideForm");
@@ -125,6 +130,15 @@ const slideFeedback = document.getElementById("slideFeedback");
 const streamFeedback = document.getElementById("streamFeedback");
 const reviewFeedback = document.getElementById("reviewFeedback");
 const teamFeedback = document.getElementById("teamFeedback");
+const slideManageList = document.getElementById("slideManageList");
+const eventManageList = document.getElementById("eventManageList");
+const streamManageList = document.getElementById("streamManageList");
+const reviewManageList = document.getElementById("reviewManageList");
+const teamManageList = document.getElementById("teamManageList");
+const deleteConfirmDialog = document.getElementById("deleteConfirmDialog");
+const deleteConfirmText = document.getElementById("deleteConfirmText");
+const cancelDeleteButton = document.getElementById("cancelDeleteButton");
+const confirmDeleteButton = document.getElementById("confirmDeleteButton");
 
 const ticketDialog = document.getElementById("ticketDialog");
 const closeTicketDialog = document.getElementById("closeTicketDialog");
@@ -138,6 +152,79 @@ const closeUserLoginDialog = document.getElementById("closeUserLoginDialog");
 const userLoginForm = document.getElementById("userLoginForm");
 const userLoginFeedback = document.getElementById("userLoginFeedback");
 
+function on(element, event, handler) {
+  if (element) {
+    element.addEventListener(event, handler);
+  }
+}
+
+function normalizeRole(value) {
+  const role = String(value || "user").toLowerCase();
+  if (role === "creator" || role === "admin") {
+    return role;
+  }
+  return "user";
+}
+
+function isAdminOrCreator(session) {
+  if (!session) {
+    return false;
+  }
+  return session.role === "admin" || session.role === "creator";
+}
+
+function readUsers() {
+  const raw = localStorage.getItem(USERS_KEY);
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.map((user) => ({
+      id: String(user.id || crypto.randomUUID()),
+      name: String(user.name || "Usuario"),
+      email: String(user.email || "").toLowerCase(),
+      password: String(user.password || ""),
+      role: normalizeRole(user.role),
+    }));
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function ensureCreatorAccount() {
+  const users = readUsers();
+  const creatorIndex = users.findIndex((user) => user.name.toLowerCase() === CREATOR_ACCOUNT.name.toLowerCase());
+
+  if (creatorIndex >= 0) {
+    users[creatorIndex] = {
+      ...users[creatorIndex],
+      name: CREATOR_ACCOUNT.name,
+      email: CREATOR_ACCOUNT.email,
+      password: CREATOR_ACCOUNT.password,
+      role: "creator",
+    };
+    saveUsers(users);
+    return;
+  }
+
+  users.push({
+    id: crypto.randomUUID(),
+    name: CREATOR_ACCOUNT.name,
+    email: CREATOR_ACCOUNT.email,
+    password: CREATOR_ACCOUNT.password,
+    role: "creator",
+  });
+  saveUsers(users);
+}
+
 function readUserSession() {
   const raw = localStorage.getItem(USER_SESSION_KEY);
   if (!raw) {
@@ -149,7 +236,11 @@ function readUserSession() {
     if (!parsed || typeof parsed.name !== "string" || typeof parsed.email !== "string") {
       return null;
     }
-    return parsed;
+    return {
+      name: parsed.name,
+      email: parsed.email,
+      role: normalizeRole(parsed.role),
+    };
   } catch (_error) {
     return null;
   }
@@ -163,6 +254,54 @@ function clearUserSession() {
   localStorage.removeItem(USER_SESSION_KEY);
 }
 
+function setFeedback(element, text, state) {
+  if (!element) {
+    return;
+  }
+
+  element.textContent = text;
+  element.classList.remove("ok", "error");
+  if (state) {
+    element.classList.add(state);
+  }
+}
+
+function escapeHTML(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function createEmptyState(message) {
+  const div = document.createElement("div");
+  div.className = "empty-state";
+  div.textContent = message;
+  return div;
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString + "T00:00:00");
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatDateTime(dateTimeString) {
+  const date = new Date(dateTimeString);
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function renderAuthState() {
   if (!authButton) {
     return;
@@ -173,12 +312,21 @@ function renderAuthState() {
 
   if (!session) {
     authButton.textContent = "Iniciar sesion";
-    return;
+  } else {
+    const shortName = session.name.length > 16 ? `${session.name.slice(0, 16)}...` : session.name;
+    const roleTag = session.role === "creator" ? "CREADOR" : session.role === "admin" ? "ADMIN" : "USUARIO";
+    authButton.textContent = `${shortName} (${roleTag})`;
+    authButton.classList.add("logged");
   }
 
-  const shortName = session.name.length > 16 ? `${session.name.slice(0, 16)}...` : session.name;
-  authButton.textContent = `Hola, ${shortName}`;
-  authButton.classList.add("logged");
+  const hasAdmin = isAdminOrCreator(session);
+  document.body.classList.toggle("has-admin-access", hasAdmin);
+
+  if (adminNavItem) {
+    adminNavItem.style.display = hasAdmin ? "list-item" : "none";
+  }
+
+  renderAdminAccess();
 }
 
 function handleUserLoginSubmit(event) {
@@ -189,7 +337,7 @@ function handleUserLoginSubmit(event) {
 
   const data = new FormData(userLoginForm);
   const inputName = String(data.get("name") || "").trim();
-  const email = String(data.get("email") || "").trim();
+  const email = String(data.get("email") || "").trim().toLowerCase();
   const password = String(data.get("password") || "").trim();
 
   if (!email || !password) {
@@ -197,15 +345,74 @@ function handleUserLoginSubmit(event) {
     return;
   }
 
-  const derivedName = inputName || email.split("@")[0] || "Usuario";
-  saveUserSession({
-    name: derivedName,
+  ensureCreatorAccount();
+  const users = readUsers();
+
+  const isCreatorLogin = inputName === CREATOR_ACCOUNT.name && password === CREATOR_ACCOUNT.password;
+  if (isCreatorLogin) {
+    const creator = users.find((user) => user.name === CREATOR_ACCOUNT.name);
+    if (creator) {
+      saveUserSession({
+        name: creator.name,
+        email: creator.email,
+        role: creator.role,
+      });
+      setFeedback(userLoginFeedback, "Sesion iniciada como CREADOR.", "ok");
+      renderAuthState();
+      setTimeout(() => {
+        if (userLoginDialog) {
+          userLoginDialog.close();
+        }
+        userLoginForm.reset();
+        setFeedback(userLoginFeedback, "", "");
+      }, 250);
+      return;
+    }
+  }
+
+  const existing = users.find((user) => user.email === email);
+  if (existing) {
+    if (existing.password !== password) {
+      setFeedback(userLoginFeedback, "Contrasena incorrecta.", "error");
+      return;
+    }
+
+    saveUserSession({
+      name: existing.name,
+      email: existing.email,
+      role: existing.role,
+    });
+
+    setFeedback(userLoginFeedback, "Sesion iniciada.", "ok");
+    renderAuthState();
+    setTimeout(() => {
+      if (userLoginDialog) {
+        userLoginDialog.close();
+      }
+      userLoginForm.reset();
+      setFeedback(userLoginFeedback, "", "");
+    }, 250);
+    return;
+  }
+
+  const newUser = {
+    id: crypto.randomUUID(),
+    name: inputName || email.split("@")[0] || "Usuario",
     email,
+    password,
+    role: "user",
+  };
+
+  users.push(newUser);
+  saveUsers(users);
+  saveUserSession({
+    name: newUser.name,
+    email: newUser.email,
+    role: newUser.role,
   });
 
-  setFeedback(userLoginFeedback, "Sesion iniciada.", "ok");
+  setFeedback(userLoginFeedback, "Cuenta creada e inicio de sesion completado.", "ok");
   renderAuthState();
-
   setTimeout(() => {
     if (userLoginDialog) {
       userLoginDialog.close();
@@ -227,137 +434,6 @@ function handleAuthButtonClick() {
 
   clearUserSession();
   renderAuthState();
-}
-
-function initColorBendsBackground() {
-  const canvas = document.getElementById("colorBendsCanvas");
-  if (!canvas) {
-    return;
-  }
-
-  const ctx = canvas.getContext("2d", { alpha: true });
-  if (!ctx) {
-    return;
-  }
-
-  const settings = {
-    rotation: (51 * Math.PI) / 180,
-    speed: 0.35,
-    autoRotate: 1,
-    scale: 1,
-    frequency: 1,
-    warpStrength: 1.2,
-    mouseInfluence: 1,
-    parallax: 0.5,
-    noise: 0.14,
-  };
-
-  let width = 0;
-  let height = 0;
-  let rafId = 0;
-  let t = 0;
-  const mouse = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 };
-
-  function resize() {
-    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function onMouseMove(event) {
-    mouse.tx = event.clientX / Math.max(1, width);
-    mouse.ty = event.clientY / Math.max(1, height);
-  }
-
-  function drawBand(index, total, motionX, motionY, angle) {
-    const yNorm = index / (total - 1);
-    const centerY = (yNorm - 0.5) * height * 1.25;
-    const amplitude = (100 + index * 13) * settings.warpStrength;
-    const thickness = Math.max(120, height * 0.18 - index * 6);
-
-    const gradient = ctx.createLinearGradient(-width, centerY - thickness, width, centerY + thickness);
-    gradient.addColorStop(0, "rgba(255, 115, 0, 0)");
-    gradient.addColorStop(0.25, `rgba(255, 115, 0, ${0.2 + index * 0.025})`);
-    gradient.addColorStop(0.5, `rgba(255, 115, 0, ${0.34 + index * 0.03})`);
-    gradient.addColorStop(0.78, `rgba(255, 115, 0, ${0.18 + index * 0.02})`);
-    gradient.addColorStop(1, "rgba(255, 115, 0, 0)");
-
-    ctx.lineWidth = thickness;
-    ctx.strokeStyle = gradient;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-
-    const segments = 7;
-    for (let s = 0; s <= segments; s += 1) {
-      const x = -width * 0.7 + (s / segments) * (width * 2.4);
-      const waveA = Math.sin(x * 0.0028 * settings.frequency + t * 1.7 + index * 0.9);
-      const waveB = Math.cos(x * 0.0019 * settings.frequency - t * 1.15 + index * 0.7);
-      const jitter = (Math.sin(t * 4 + s + index) + Math.cos(t * 3 - s * 0.7)) *
-        amplitude *
-        settings.noise *
-        0.5;
-      const y = centerY + waveA * amplitude + waveB * amplitude * 0.45 + jitter + motionY * (25 + index * 4);
-      const xx = x + motionX * (45 + index * 7);
-
-      if (s === 0) {
-        ctx.moveTo(xx, y);
-      } else {
-        ctx.lineTo(xx, y);
-      }
-    }
-
-    ctx.stroke();
-  }
-
-  function render() {
-    t += 0.008 * settings.speed;
-    mouse.x += (mouse.tx - mouse.x) * 0.08;
-    mouse.y += (mouse.ty - mouse.y) * 0.08;
-
-    const motionX = (mouse.x - 0.5) * 2 * settings.mouseInfluence * settings.parallax;
-    const motionY = (mouse.y - 0.5) * 2 * settings.mouseInfluence * settings.parallax;
-
-    ctx.clearRect(0, 0, width, height);
-    ctx.save();
-    ctx.translate(width / 2, height / 2);
-    ctx.rotate(settings.rotation + t * 0.12 * settings.autoRotate);
-    ctx.scale(settings.scale, settings.scale);
-    ctx.translate(-width / 2, -height / 2);
-
-    ctx.globalCompositeOperation = "lighter";
-    const totalBands = 8;
-    for (let i = 0; i < totalBands; i += 1) {
-      drawBand(i, totalBands, motionX, motionY);
-    }
-    ctx.globalCompositeOperation = "source-over";
-    ctx.restore();
-
-    rafId = window.requestAnimationFrame(render);
-  }
-
-  function onVisibilityChange() {
-    if (document.hidden) {
-      window.cancelAnimationFrame(rafId);
-      return;
-    }
-    window.cancelAnimationFrame(rafId);
-    rafId = window.requestAnimationFrame(render);
-  }
-
-  resize();
-  window.addEventListener("resize", resize, { passive: true });
-  window.addEventListener("mousemove", onMouseMove, { passive: true });
-  document.addEventListener("visibilitychange", onVisibilityChange);
-  rafId = window.requestAnimationFrame(render);
-}
-
-function on(element, event, handler) {
-  if (element) {
-    element.addEventListener(event, handler);
-  }
 }
 
 function readData() {
@@ -394,52 +470,13 @@ function saveData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function formatDate(dateString) {
-  const date = new Date(dateString + "T00:00:00");
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatDateTime(dateTimeString) {
-  const date = new Date(dateTimeString);
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function setFeedback(element, text, state) {
-  if (!element) {
-    return;
+function requireAdminContentAction(feedbackElement) {
+  const session = readUserSession();
+  if (!isAdminOrCreator(session)) {
+    setFeedback(feedbackElement, "Necesitas rol admin o creador para esta accion.", "error");
+    return false;
   }
-
-  element.textContent = text;
-  element.classList.remove("ok", "error");
-  if (state) {
-    element.classList.add(state);
-  }
-}
-
-function escapeHTML(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function createEmptyState(message) {
-  const div = document.createElement("div");
-  div.className = "empty-state";
-  div.textContent = message;
-  return div;
+  return true;
 }
 
 function renderCarousel() {
@@ -451,7 +488,7 @@ function renderCarousel() {
   if (data.slides.length === 0) {
     carouselImage.src = placeholderWide;
     carouselTitle.textContent = "Sin imagenes publicadas";
-    carouselCaption.textContent = "Cuando el admin agregue slides, apareceran aqui.";
+    carouselCaption.textContent = "Cuando se agreguen slides, apareceran aqui.";
     carouselIndicator.textContent = "0 / 0";
     return;
   }
@@ -614,6 +651,192 @@ function renderAll() {
   renderStreams();
   renderReviews();
   renderTeam();
+  renderAdminManageLists();
+}
+
+function createAdminItemRow(label, kind, itemId) {
+  const row = document.createElement("article");
+  row.className = "admin-item-row";
+  row.innerHTML = `
+    <p>${escapeHTML(label)}</p>
+    <button type="button" class="btn btn-danger" data-remove-kind="${kind}" data-remove-id="${itemId}">Eliminar</button>
+  `;
+  return row;
+}
+
+function mountManageList(container, items, mapper) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+  if (items.length === 0) {
+    container.appendChild(createEmptyState("Sin elementos."));
+    return;
+  }
+
+  for (const item of items) {
+    const mapped = mapper(item);
+    const row = createAdminItemRow(mapped.label, mapped.kind, mapped.id);
+    container.appendChild(row);
+  }
+}
+
+function removeContentByKind(kind, itemId) {
+  const data = readData();
+  const listMap = {
+    slide: "slides",
+    event: "events",
+    stream: "streams",
+    review: "reviews",
+    team: "team",
+  };
+
+  const listName = listMap[kind];
+  if (!listName || !Array.isArray(data[listName])) {
+    return false;
+  }
+
+  const before = data[listName].length;
+  data[listName] = data[listName].filter((item) => item.id !== itemId);
+  if (data[listName].length === before) {
+    return false;
+  }
+
+  saveData(data);
+  renderAll();
+  return true;
+}
+
+function handleAdminRemoveClick(event) {
+  const button = event.target.closest("button[data-remove-kind]");
+  if (!button) {
+    return;
+  }
+
+  const session = readUserSession();
+  if (!isAdminOrCreator(session)) {
+    setFeedback(adminPanelFeedback, "No tienes permisos para eliminar.", "error");
+    return;
+  }
+
+  const kind = button.getAttribute("data-remove-kind") || "";
+  const itemId = button.getAttribute("data-remove-id") || "";
+  if (!kind || !itemId) {
+    return;
+  }
+
+  const labels = {
+    slide: "este slide",
+    event: "este evento",
+    stream: "este stream",
+    review: "esta review",
+    team: "este miembro del team",
+  };
+  const targetLabel = labels[kind] || "este elemento";
+  if (deleteConfirmDialog && confirmDeleteButton) {
+    pendingDeleteAction = { kind, itemId };
+    if (deleteConfirmText) {
+      deleteConfirmText.textContent = `Vas a eliminar ${targetLabel}. Esta accion no se puede deshacer.`;
+    }
+    deleteConfirmDialog.showModal();
+    return;
+  }
+
+  const shouldDelete = window.confirm(`Seguro que quieres eliminar ${targetLabel}? Esta accion no se puede deshacer.`);
+  if (!shouldDelete) {
+    return;
+  }
+
+  const ok = removeContentByKind(kind, itemId);
+  if (!ok) {
+    setFeedback(adminPanelFeedback, "No se pudo eliminar el elemento.", "error");
+    return;
+  }
+
+  setFeedback(adminPanelFeedback, "Elemento eliminado correctamente.", "ok");
+}
+
+function handleConfirmDeleteClick() {
+  if (!pendingDeleteAction) {
+    return;
+  }
+
+  const session = readUserSession();
+  if (!isAdminOrCreator(session)) {
+    setFeedback(adminPanelFeedback, "No tienes permisos para eliminar.", "error");
+    pendingDeleteAction = null;
+    if (deleteConfirmDialog) {
+      deleteConfirmDialog.close();
+    }
+    return;
+  }
+
+  const { kind, itemId } = pendingDeleteAction;
+  const ok = removeContentByKind(kind, itemId);
+  if (!ok) {
+    setFeedback(adminPanelFeedback, "No se pudo eliminar el elemento.", "error");
+  } else {
+    setFeedback(adminPanelFeedback, "Elemento eliminado correctamente.", "ok");
+  }
+
+  pendingDeleteAction = null;
+  if (deleteConfirmDialog) {
+    deleteConfirmDialog.close();
+  }
+}
+
+function renderAdminManageLists() {
+  const data = readData();
+
+  mountManageList(slideManageList, data.slides, (item) => ({
+    id: item.id,
+    label: item.title || "Slide sin titulo",
+    kind: "slide",
+  }));
+
+  mountManageList(eventManageList, data.events, (item) => ({
+    id: item.id,
+    label: `${item.title || "Evento"} (${item.date || "sin fecha"})`,
+    kind: "event",
+  }));
+
+  mountManageList(streamManageList, data.streams, (item) => ({
+    id: item.id,
+    label: `${item.title || "Stream"} - ${item.platform || "Plataforma"}`,
+    kind: "stream",
+  }));
+
+  mountManageList(reviewManageList, data.reviews, (item) => ({
+    id: item.id,
+    label: `${item.author || "Autor"}: ${item.event || "Evento"}`,
+    kind: "review",
+  }));
+
+  mountManageList(teamManageList, data.team, (item) => ({
+    id: item.id,
+    label: `${item.name || "Miembro"} - ${item.role || "Rol"}`,
+    kind: "team",
+  }));
+}
+
+function renderAdminAccess() {
+  if (!adminArea && !adminDenied && !creatorRoleBlock) {
+    return;
+  }
+
+  const session = readUserSession();
+  const isPrivileged = isAdminOrCreator(session);
+
+  if (adminArea) {
+    adminArea.classList.toggle("visible", isPrivileged);
+  }
+  if (adminDenied) {
+    adminDenied.classList.toggle("visible", !isPrivileged);
+  }
+  if (creatorRoleBlock) {
+    creatorRoleBlock.classList.toggle("visible", session?.role === "creator");
+  }
 }
 
 function handleSupportSubmit(event) {
@@ -624,59 +847,9 @@ function handleSupportSubmit(event) {
   setFeedback(supportFeedback, "Mensaje enviado. Te responderemos en menos de 24h.", "ok");
 }
 
-function handleAdminLogin(event) {
-  event.preventDefault();
-
-  if (!adminLoginForm) {
-    return;
-  }
-
-  const data = new FormData(adminLoginForm);
-  const user = String(data.get("adminUser") || "").trim();
-  const pass = String(data.get("adminPass") || "").trim();
-
-  if (user === ADMIN_CREDENTIALS.user && pass === ADMIN_CREDENTIALS.pass) {
-    setFeedback(adminLoginFeedback, "Acceso correcto.", "ok");
-    adminLoginForm.reset();
-
-    setTimeout(() => {
-      if (adminDialog) {
-        adminDialog.close();
-      }
-      setFeedback(adminLoginFeedback, "", "");
-      setFeedback(adminPanelFeedback, "", "");
-      setFeedback(slideFeedback, "", "");
-      setFeedback(streamFeedback, "", "");
-      setFeedback(reviewFeedback, "", "");
-      setFeedback(teamFeedback, "", "");
-      if (adminEventForm) {
-        adminEventForm.reset();
-      }
-      if (adminSlideForm) {
-        adminSlideForm.reset();
-      }
-      if (adminStreamForm) {
-        adminStreamForm.reset();
-      }
-      if (adminReviewForm) {
-        adminReviewForm.reset();
-      }
-      if (adminTeamForm) {
-        adminTeamForm.reset();
-      }
-      if (adminPanelDialog) {
-        adminPanelDialog.showModal();
-      }
-    }, 220);
-    return;
-  }
-
-  setFeedback(adminLoginFeedback, "Credenciales invalidas.", "error");
-}
-
 function handleCreateSlide(event) {
   event.preventDefault();
-  if (!adminSlideForm) {
+  if (!adminSlideForm || !requireAdminContentAction(slideFeedback)) {
     return;
   }
 
@@ -705,7 +878,7 @@ function handleCreateSlide(event) {
 
 function handleCreateEvent(event) {
   event.preventDefault();
-  if (!adminEventForm) {
+  if (!adminEventForm || !requireAdminContentAction(adminPanelFeedback)) {
     return;
   }
 
@@ -747,7 +920,7 @@ function handleCreateEvent(event) {
 
 function handleCreateStream(event) {
   event.preventDefault();
-  if (!adminStreamForm) {
+  if (!adminStreamForm || !requireAdminContentAction(streamFeedback)) {
     return;
   }
 
@@ -777,7 +950,7 @@ function handleCreateStream(event) {
 
 function handleCreateReview(event) {
   event.preventDefault();
-  if (!adminReviewForm) {
+  if (!adminReviewForm || !requireAdminContentAction(reviewFeedback)) {
     return;
   }
 
@@ -812,7 +985,7 @@ function handleCreateReview(event) {
 
 function handleCreateTeam(event) {
   event.preventDefault();
-  if (!adminTeamForm) {
+  if (!adminTeamForm || !requireAdminContentAction(teamFeedback)) {
     return;
   }
 
@@ -837,6 +1010,114 @@ function handleCreateTeam(event) {
 
   setFeedback(teamFeedback, "Miembro agregado al team.", "ok");
   adminTeamForm.reset();
+}
+
+function renderRoleSearchResults(query) {
+  if (!roleSearchResults) {
+    return;
+  }
+
+  const users = readUsers();
+  const normalizedQuery = query.toLowerCase();
+  const matches = users.filter((user) =>
+    user.name.toLowerCase().includes(normalizedQuery) || user.email.toLowerCase().includes(normalizedQuery)
+  );
+
+  roleSearchResults.innerHTML = "";
+
+  if (matches.length === 0) {
+    roleSearchResults.appendChild(createEmptyState("No se encontraron usuarios."));
+    return;
+  }
+
+  for (const user of matches) {
+    const row = document.createElement("article");
+    row.className = "role-user-row";
+
+    const isCreatorUser = user.role === "creator";
+    const selectOptions = ["user", "admin"]
+      .map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${role.toUpperCase()}</option>`)
+      .join("");
+
+    row.innerHTML = `
+      <div class="role-user-meta">
+        <p><strong>${escapeHTML(user.name)}</strong></p>
+        <p>${escapeHTML(user.email)}</p>
+        <p class="role-user-role">Rol actual: ${escapeHTML(user.role.toUpperCase())}</p>
+      </div>
+      ${
+        isCreatorUser
+          ? `<p class="role-user-role">Cuenta CREADOR fija</p>`
+          : `<select data-user-id="${escapeHTML(user.id)}">${selectOptions}</select>
+             <button type="button" class="btn btn-primary" data-assign-role="${escapeHTML(user.id)}">Guardar</button>`
+      }
+    `;
+
+    roleSearchResults.appendChild(row);
+  }
+
+  for (const button of roleSearchResults.querySelectorAll("button[data-assign-role]")) {
+    on(button, "click", () => {
+      const session = readUserSession();
+      if (session?.role !== "creator") {
+        setFeedback(roleSearchFeedback, "Solo el CREADOR puede asignar roles.", "error");
+        return;
+      }
+
+      const userId = button.getAttribute("data-assign-role");
+      const select = roleSearchResults.querySelector(`select[data-user-id="${userId}"]`);
+      if (!select || !userId) {
+        return;
+      }
+
+      const nextRole = normalizeRole(select.value);
+      const users = readUsers();
+      const idx = users.findIndex((user) => user.id === userId);
+      if (idx < 0) {
+        setFeedback(roleSearchFeedback, "No se encontro el usuario.", "error");
+        return;
+      }
+
+      users[idx].role = nextRole;
+      saveUsers(users);
+
+      const currentSession = readUserSession();
+      if (currentSession && currentSession.email === users[idx].email) {
+        saveUserSession({
+          ...currentSession,
+          role: nextRole,
+        });
+      }
+
+      setFeedback(roleSearchFeedback, "Rol actualizado correctamente.", "ok");
+      renderRoleSearchResults(query);
+      renderAuthState();
+    });
+  }
+}
+
+function handleRoleSearchSubmit(event) {
+  event.preventDefault();
+  const session = readUserSession();
+  if (session?.role !== "creator") {
+    setFeedback(roleSearchFeedback, "Solo el CREADOR puede buscar y asignar roles.", "error");
+    return;
+  }
+
+  if (!roleSearchForm) {
+    return;
+  }
+
+  const data = new FormData(roleSearchForm);
+  const query = String(data.get("query") || "").trim();
+
+  if (!query) {
+    setFeedback(roleSearchFeedback, "Escribe un nombre o email.", "error");
+    return;
+  }
+
+  setFeedback(roleSearchFeedback, "", "");
+  renderRoleSearchResults(query);
 }
 
 function handleTicketPurchase(event) {
@@ -872,6 +1153,129 @@ function handleTicketPurchase(event) {
   }, 700);
 }
 
+function initColorBendsBackground() {
+  const canvas = document.getElementById("colorBendsCanvas");
+  if (!canvas) {
+    return;
+  }
+
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) {
+    return;
+  }
+
+  const settings = {
+    rotation: (51 * Math.PI) / 180,
+    speed: 0.35,
+    autoRotate: 1,
+    scale: 1,
+    frequency: 1,
+    warpStrength: 1.2,
+    mouseInfluence: 1,
+    parallax: 0.5,
+    noise: 0.14,
+  };
+
+  let width = 0;
+  let height = 0;
+  let rafId = 0;
+  let t = 0;
+  const mouse = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 };
+
+  function resize() {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function onMouseMove(event) {
+    mouse.tx = event.clientX / Math.max(1, width);
+    mouse.ty = event.clientY / Math.max(1, height);
+  }
+
+  function drawBand(index, total, motionX, motionY) {
+    const yNorm = index / (total - 1);
+    const centerY = (yNorm - 0.5) * height * 1.25;
+    const amplitude = (100 + index * 13) * settings.warpStrength;
+    const thickness = Math.max(120, height * 0.18 - index * 6);
+
+    const gradient = ctx.createLinearGradient(-width, centerY - thickness, width, centerY + thickness);
+    gradient.addColorStop(0, "rgba(255, 115, 0, 0)");
+    gradient.addColorStop(0.25, `rgba(255, 115, 0, ${0.2 + index * 0.025})`);
+    gradient.addColorStop(0.5, `rgba(255, 115, 0, ${0.34 + index * 0.03})`);
+    gradient.addColorStop(0.78, `rgba(255, 115, 0, ${0.18 + index * 0.02})`);
+    gradient.addColorStop(1, "rgba(255, 115, 0, 0)");
+
+    ctx.lineWidth = thickness;
+    ctx.strokeStyle = gradient;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+
+    const segments = 7;
+    for (let s = 0; s <= segments; s += 1) {
+      const x = -width * 0.7 + (s / segments) * (width * 2.4);
+      const waveA = Math.sin(x * 0.0028 * settings.frequency + t * 1.7 + index * 0.9);
+      const waveB = Math.cos(x * 0.0019 * settings.frequency - t * 1.15 + index * 0.7);
+      const jitter =
+        (Math.sin(t * 4 + s + index) + Math.cos(t * 3 - s * 0.7)) * amplitude * settings.noise * 0.5;
+      const y = centerY + waveA * amplitude + waveB * amplitude * 0.45 + jitter + motionY * (25 + index * 4);
+      const xx = x + motionX * (45 + index * 7);
+
+      if (s === 0) {
+        ctx.moveTo(xx, y);
+      } else {
+        ctx.lineTo(xx, y);
+      }
+    }
+
+    ctx.stroke();
+  }
+
+  function render() {
+    t += 0.008 * settings.speed;
+    mouse.x += (mouse.tx - mouse.x) * 0.08;
+    mouse.y += (mouse.ty - mouse.y) * 0.08;
+
+    const motionX = (mouse.x - 0.5) * 2 * settings.mouseInfluence * settings.parallax;
+    const motionY = (mouse.y - 0.5) * 2 * settings.mouseInfluence * settings.parallax;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(settings.rotation + t * 0.12 * settings.autoRotate);
+    ctx.scale(settings.scale, settings.scale);
+    ctx.translate(-width / 2, -height / 2);
+
+    ctx.globalCompositeOperation = "lighter";
+    const totalBands = 8;
+    for (let i = 0; i < totalBands; i += 1) {
+      drawBand(i, totalBands, motionX, motionY);
+    }
+    ctx.globalCompositeOperation = "source-over";
+    ctx.restore();
+
+    rafId = window.requestAnimationFrame(render);
+  }
+
+  function onVisibilityChange() {
+    if (document.hidden) {
+      window.cancelAnimationFrame(rafId);
+      return;
+    }
+    window.cancelAnimationFrame(rafId);
+    rafId = window.requestAnimationFrame(render);
+  }
+
+  resize();
+  window.addEventListener("resize", resize, { passive: true });
+  window.addEventListener("mousemove", onMouseMove, { passive: true });
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  rafId = window.requestAnimationFrame(render);
+}
+
 on(menuToggle, "click", () => {
   if (navLinks) {
     navLinks.classList.toggle("open");
@@ -903,34 +1307,35 @@ on(carouselNext, "click", () => {
 });
 
 on(supportForm, "submit", handleSupportSubmit);
-on(openAdminButton, "click", () => {
-  setFeedback(adminLoginFeedback, "Tip: usuario admin y contrasena admin123", "");
-  if (adminDialog) {
-    adminDialog.showModal();
-  }
-});
-on(closeAdminDialog, "click", () => {
-  if (adminDialog) {
-    adminDialog.close();
-  }
-});
-on(adminLoginForm, "submit", handleAdminLogin);
-on(closeAdminPanel, "click", () => {
-  if (adminPanelDialog) {
-    adminPanelDialog.close();
-  }
-});
 on(adminSlideForm, "submit", handleCreateSlide);
 on(adminEventForm, "submit", handleCreateEvent);
 on(adminStreamForm, "submit", handleCreateStream);
 on(adminReviewForm, "submit", handleCreateReview);
 on(adminTeamForm, "submit", handleCreateTeam);
+on(roleSearchForm, "submit", handleRoleSearchSubmit);
+on(slideManageList, "click", handleAdminRemoveClick);
+on(eventManageList, "click", handleAdminRemoveClick);
+on(streamManageList, "click", handleAdminRemoveClick);
+on(reviewManageList, "click", handleAdminRemoveClick);
+on(teamManageList, "click", handleAdminRemoveClick);
+on(cancelDeleteButton, "click", () => {
+  pendingDeleteAction = null;
+  if (deleteConfirmDialog) {
+    deleteConfirmDialog.close();
+  }
+});
+on(confirmDeleteButton, "click", handleConfirmDeleteClick);
+on(deleteConfirmDialog, "close", () => {
+  pendingDeleteAction = null;
+});
+
 on(closeTicketDialog, "click", () => {
   if (ticketDialog) {
     ticketDialog.close();
   }
 });
 on(ticketForm, "submit", handleTicketPurchase);
+
 on(authButton, "click", handleAuthButtonClick);
 on(closeUserLoginDialog, "click", () => {
   if (userLoginDialog) {
@@ -939,6 +1344,7 @@ on(closeUserLoginDialog, "click", () => {
 });
 on(userLoginForm, "submit", handleUserLoginSubmit);
 
+ensureCreatorAccount();
 renderAll();
 renderAuthState();
 initColorBendsBackground();

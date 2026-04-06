@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2k22 | Administracion</title>
+    <meta name="description" content="Panel de administracion de contenidos y roles en 2k22." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260406-3" />
+  </head>
+  <body>
+    <canvas id="colorBendsCanvas" class="color-bends" aria-hidden="true"></canvas>
+
+    <header class="site-header" id="inicio">
+      <nav class="nav" aria-label="Navegacion principal">
+        <a class="brand" href="index.html#inicio" aria-label="2k22 inicio">
+          <img
+            src="logo-2k22.png"
+            alt="Logo 2k22"
+            class="brand-logo"
+            onerror="this.onerror=null;this.src='logo-2k22.svg'"
+          />
+          <span class="brand-text">2k22</span>
+        </a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">Menu</button>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="index.html#inicio">Inicio</a></li>
+          <li><a href="events.html">Eventos</a></li>
+          <li><a href="support.html">Soporte</a></li>
+          <li id="adminNavItem" class="admin-nav-item"><a href="admin.html" class="active-link">ADMINISTRACION</a></li>
+        </ul>
+        <div class="nav-auth">
+          <button class="btn btn-ghost btn-auth" id="authButton" type="button">Iniciar sesion</button>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="section" id="administracion">
+        <div class="section-head">
+          <h2>Centro de administracion</h2>
+          <p>Visible para administradores y creadores.</p>
+        </div>
+
+        <div id="adminDenied" class="glass-card support-card admin-denied">
+          <h3>Acceso restringido</h3>
+          <p>Inicia sesion con una cuenta admin o creador para usar este panel.</p>
+        </div>
+
+        <div id="adminArea" class="admin-area">
+          <div class="admin-grid">
+            <section class="admin-block">
+              <h4>1) Nuevo slide de inicio</h4>
+              <form id="adminSlideForm" class="admin-inner-form">
+                <label for="slideTitle">Titulo</label>
+                <input id="slideTitle" name="title" type="text" required />
+
+                <label for="slideCaption">Descripcion</label>
+                <input id="slideCaption" name="caption" type="text" required />
+
+                <label for="slideImageUrl">URL de imagen</label>
+                <input id="slideImageUrl" name="imageUrl" type="url" placeholder="https://..." />
+
+                <button class="btn btn-primary" type="submit">Agregar slide</button>
+                <p class="form-feedback" id="slideFeedback" aria-live="polite"></p>
+              </form>
+              <div class="admin-manage">
+                <p class="admin-manage-title">Slides publicados</p>
+                <div id="slideManageList" class="admin-manage-list"></div>
+              </div>
+            </section>
+
+            <section class="admin-block">
+              <h4>2) Nuevo evento</h4>
+              <form id="adminEventForm" class="admin-inner-form">
+                <label for="eventTitle">Titulo del evento</label>
+                <input id="eventTitle" name="title" type="text" required />
+
+                <label for="eventDate">Fecha</label>
+                <input id="eventDate" name="date" type="date" required />
+
+                <label for="eventLocation">Ubicacion</label>
+                <input id="eventLocation" name="location" type="text" required />
+
+                <label for="eventPrice">Precio (EUR)</label>
+                <input id="eventPrice" name="price" type="number" min="0" step="1" required />
+
+                <label for="eventImageUrl">URL de imagen del evento</label>
+                <input id="eventImageUrl" name="imageUrl" type="url" placeholder="https://..." required />
+
+                <label for="eventDescription">Descripcion</label>
+                <textarea id="eventDescription" name="description" rows="3" required></textarea>
+
+                <button class="btn btn-primary" type="submit">Guardar evento</button>
+                <p class="form-feedback" id="adminPanelFeedback" aria-live="polite"></p>
+              </form>
+              <div class="admin-manage">
+                <p class="admin-manage-title">Eventos publicados</p>
+                <div id="eventManageList" class="admin-manage-list"></div>
+              </div>
+            </section>
+
+            <section class="admin-block">
+              <h4>3) Nuevo stream/directo</h4>
+              <form id="adminStreamForm" class="admin-inner-form">
+                <label for="streamTitle">Titulo del directo</label>
+                <input id="streamTitle" name="title" type="text" required />
+
+                <label for="streamDate">Fecha y hora</label>
+                <input id="streamDate" name="datetime" type="datetime-local" required />
+
+                <label for="streamPlatform">Plataforma</label>
+                <input id="streamPlatform" name="platform" type="text" placeholder="YouTube, Twitch..." required />
+
+                <label for="streamUrl">URL del stream</label>
+                <input id="streamUrl" name="url" type="url" placeholder="https://..." required />
+
+                <label for="streamImageUrl">Imagen de portada</label>
+                <input id="streamImageUrl" name="imageUrl" type="url" placeholder="https://..." required />
+
+                <button class="btn btn-primary" type="submit">Publicar stream</button>
+                <p class="form-feedback" id="streamFeedback" aria-live="polite"></p>
+              </form>
+              <div class="admin-manage">
+                <p class="admin-manage-title">Streams publicados</p>
+                <div id="streamManageList" class="admin-manage-list"></div>
+              </div>
+            </section>
+
+            <section class="admin-block">
+              <h4>4) Nueva review</h4>
+              <form id="adminReviewForm" class="admin-inner-form">
+                <label for="reviewAuthor">Nombre</label>
+                <input id="reviewAuthor" name="author" type="text" required />
+
+                <label for="reviewEvent">Evento</label>
+                <input id="reviewEvent" name="event" type="text" required />
+
+                <label for="reviewRating">Puntuacion (1-5)</label>
+                <input id="reviewRating" name="rating" type="number" min="1" max="5" required />
+
+                <label for="reviewComment">Comentario</label>
+                <textarea id="reviewComment" name="comment" rows="3" required></textarea>
+
+                <label for="reviewImageUrl">Imagen opcional</label>
+                <input id="reviewImageUrl" name="imageUrl" type="url" placeholder="https://..." />
+
+                <button class="btn btn-primary" type="submit">Publicar review</button>
+                <p class="form-feedback" id="reviewFeedback" aria-live="polite"></p>
+              </form>
+              <div class="admin-manage">
+                <p class="admin-manage-title">Reviews publicadas</p>
+                <div id="reviewManageList" class="admin-manage-list"></div>
+              </div>
+            </section>
+
+            <section class="admin-block">
+              <h4>5) Team administrativo</h4>
+              <form id="adminTeamForm" class="admin-inner-form">
+                <label for="teamName">Nombre</label>
+                <input id="teamName" name="name" type="text" required />
+
+                <label for="teamRole">Cargo</label>
+                <input id="teamRole" name="role" type="text" required />
+
+                <label for="teamArea">Descripcion</label>
+                <textarea id="teamArea" name="area" rows="3" required></textarea>
+
+                <label for="teamImageUrl">Foto de usuario (URL)</label>
+                <input id="teamImageUrl" name="imageUrl" type="url" placeholder="https://..." required />
+
+                <button class="btn btn-primary" type="submit">Agregar miembro</button>
+                <p class="form-feedback" id="teamFeedback" aria-live="polite"></p>
+              </form>
+              <div class="admin-manage">
+                <p class="admin-manage-title">Miembros del team</p>
+                <div id="teamManageList" class="admin-manage-list"></div>
+              </div>
+            </section>
+
+            <section id="creatorRoleBlock" class="admin-block creator-only">
+              <h4>6) Gestion de roles (solo CREADOR)</h4>
+              <form id="roleSearchForm" class="admin-inner-form">
+                <label for="roleSearch">Buscar usuario por nombre o email</label>
+                <input id="roleSearch" name="query" type="text" placeholder="ej: juan o juan@email.com" required />
+                <button class="btn btn-ghost" type="submit">Buscar</button>
+                <p class="form-feedback" id="roleSearchFeedback" aria-live="polite"></p>
+              </form>
+              <div id="roleSearchResults" class="role-results"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>2k22 2026. Todos los derechos reservados.</p>
+    </footer>
+
+    <dialog id="deleteConfirmDialog" class="modal">
+      <div class="modal-card delete-modal-card">
+        <h3>Confirmar eliminacion</h3>
+        <p id="deleteConfirmText">Esta accion no se puede deshacer.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="cancelDeleteButton">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteButton">Eliminar</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="userLoginDialog" class="modal">
+      <form method="dialog" class="modal-card" id="userLoginForm">
+        <h3>Iniciar sesion</h3>
+
+        <label for="loginName">Nombre</label>
+        <input id="loginName" name="name" type="text" placeholder="Tu nombre" />
+
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" name="email" type="email" placeholder="tu@email.com" required />
+
+        <label for="loginPassword">Contrasena</label>
+        <input id="loginPassword" name="password" type="password" required />
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="closeUserLoginDialog">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Entrar</button>
+        </div>
+        <p class="form-feedback" id="userLoginFeedback" aria-live="polite"></p>
+      </form>
+    </dialog>
+
+    <script src="app.js?v=20260406-3"></script>
+  </body>
+</html>

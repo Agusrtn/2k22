@@ -1,26 +1,50 @@
-# PulseTickets
+# 2K22 APP
 
-Web para empresa de eventos con:
+Web de eventos con estilo glass oscuro/naranja y gestion de contenido en front-end.
 
-- Seccion de inicio.
-- Seccion de eventos con compra de entradas.
-- Seccion de soporte con formulario.
-- Seccion de team administrativo.
-- Panel de administrador para crear eventos.
+## Estructura
 
-## Como usar
+- `index.html`: inicio con carrusel, streams y reviews.
+- `events.html`: pagina de eventos y compra de entradas.
+- `support.html`: team administrativo y formulario de soporte.
+- `admin.html`: centro de administracion de contenido y roles.
 
-1. Abre `index.html` en tu navegador.
-2. Ve a **Eventos** para sacar entradas.
-3. En **Panel administrador**, inicia sesion con:
-   - Usuario: `admin`
-   - Contrasena: `admin123`
-4. Crea nuevos eventos. Quedaran guardados en Local Storage.
+## Roles y acceso
 
-## Notas
+- `user`: puede navegar y comprar entradas.
+- `admin`: puede crear y eliminar contenido en `admin.html`.
+- `creator`: tiene permisos de admin y ademas puede asignar roles.
 
-- Esta version es de front-end (sin base de datos ni backend).
-- Para un entorno real se recomienda:
-  - Backend con autenticacion segura.
-  - Base de datos para eventos y entradas.
-  - Integracion de pagos.
+Cuenta fija de CREADOR:
+
+- Usuario: `2K22`
+- Contrasena: `Aguselguay`
+
+Los datos de usuarios, sesion y contenido se guardan en `localStorage`.
+
+## Uso en local
+
+1. Abre `index.html` directamente en navegador, o usa un servidor estatico.
+2. Recomendado con Node:
+
+```bash
+npx --yes http-server -p 5500 .
+```
+
+3. Abre `http://localhost:5500`.
+
+## Panel de administracion
+
+En `admin.html`, usuarios `admin` y `creator` pueden:
+
+- Agregar y eliminar slides.
+- Agregar y eliminar eventos.
+- Agregar y eliminar streams.
+- Agregar y eliminar reviews.
+- Agregar y eliminar miembros del team.
+
+El borrado tiene confirmacion previa para evitar eliminaciones accidentales.
+
+## Nota tecnica
+
+Este proyecto es 100% front-end. Para produccion se recomienda backend con autenticacion real y base de datos.
