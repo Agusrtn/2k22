@@ -341,18 +341,29 @@ function handleUserLoginSubmit(event) {
   const email = String(data.get("email") || "").trim().toLowerCase();
   const password = String(data.get("password") || "").trim();
 
-  if (!email || !password) {
-    setFeedback(userLoginFeedback, "Completa email y contrasena.", "error");
+  ensureCreatorAccount();
+  const users = readUsers();
+  const isCreatorByName = inputName.toLowerCase() === CREATOR_ACCOUNT.name.toLowerCase();
+
+  if (!password) {
+    setFeedback(userLoginFeedback, "Completa la contrasena.", "error");
     return;
   }
 
-  ensureCreatorAccount();
-  const users = readUsers();
-
   const existing = users.find((user) => user.email === email);
   if (action === "register") {
+    if (!email) {
+      setFeedback(userLoginFeedback, "Para crear cuenta, completa el email.", "error");
+      return;
+    }
+
     if (!inputName) {
       setFeedback(userLoginFeedback, "Para crear cuenta, completa tambien el nombre.", "error");
+      return;
+    }
+
+    if (isCreatorByName && email !== CREATOR_ACCOUNT.email) {
+      setFeedback(userLoginFeedback, "El nombre 2K22 esta reservado para la cuenta CREADOR.", "error");
       return;
     }
 
@@ -372,6 +383,36 @@ function handleUserLoginSubmit(event) {
     users.push(newUser);
     saveUsers(users);
     setFeedback(userLoginFeedback, "Cuenta creada. Ahora pulsa Entrar para iniciar sesion.", "ok");
+    return;
+  }
+
+  if (isCreatorByName) {
+    const creator = users.find((user) => user.role === "creator" && user.name.toLowerCase() === CREATOR_ACCOUNT.name.toLowerCase());
+    if (!creator || creator.password !== password) {
+      setFeedback(userLoginFeedback, "Contrasena incorrecta para CREADOR.", "error");
+      return;
+    }
+
+    saveUserSession({
+      name: creator.name,
+      email: creator.email,
+      role: creator.role,
+    });
+
+    setFeedback(userLoginFeedback, "Sesion iniciada como CREADOR.", "ok");
+    renderAuthState();
+    setTimeout(() => {
+      if (userLoginDialog) {
+        userLoginDialog.close();
+      }
+      userLoginForm.reset();
+      setFeedback(userLoginFeedback, "", "");
+    }, 250);
+    return;
+  }
+
+  if (!email) {
+    setFeedback(userLoginFeedback, "Completa el email para iniciar sesion.", "error");
     return;
   }
 
