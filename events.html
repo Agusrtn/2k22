@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2k22 | Eventos</title>
+    <meta
+      name="description"
+      content="Agenda de eventos 2k22 con eventos proximos destacados y eventos pasados."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260406-1" />
+  </head>
+  <body>
+    <canvas id="colorBendsCanvas" class="color-bends" aria-hidden="true"></canvas>
+
+    <header class="site-header" id="inicio">
+      <nav class="nav" aria-label="Navegacion principal">
+        <a class="brand" href="index.html#inicio" aria-label="2k22 inicio">
+          <img
+            src="logo-2k22.png"
+            alt="Logo 2k22"
+            class="brand-logo"
+            onerror="this.onerror=null;this.src='logo-2k22.svg'"
+          />
+          <span class="brand-text">2k22</span>
+        </a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">Menu</button>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="index.html#inicio">Inicio</a></li>
+          <li><a href="events.html" class="active-link">Eventos</a></li>
+          <li><a href="support.html">Soporte</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <section class="section" id="eventos-portada">
+        <div class="section-head">
+          <h2>Calendario oficial 2k22</h2>
+          <p>Primero lo que viene. Luego, el historial completo de eventos.</p>
+        </div>
+        <article class="events-hero-banner glass-card">
+          <img
+            src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1700&q=80"
+            alt="Escenario principal de evento en vivo"
+          />
+          <div class="events-hero-content">
+            <p class="events-hero-kicker">Temporada 2026</p>
+            <h3>Shows en vivo, experiencias inmersivas y acceso premium.</h3>
+          </div>
+        </article>
+      </section>
+
+      <section class="section" id="eventos">
+        <div class="section-head">
+          <h2>Todos los eventos</h2>
+          <p>Los proximos se muestran mas relucientes. Los pasados quedan mas apagados.</p>
+        </div>
+        <div class="event-grid" id="eventGrid"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>2k22 2026. Todos los derechos reservados.</p>
+    </footer>
+
+    <dialog id="ticketDialog" class="modal">
+      <form method="dialog" class="modal-card" id="ticketForm">
+        <h3>Sacar entrada</h3>
+        <p id="ticketEventName"></p>
+
+        <label for="buyerName">Nombre completo</label>
+        <input id="buyerName" name="buyerName" type="text" required />
+
+        <label for="buyerEmail">Email</label>
+        <input id="buyerEmail" name="buyerEmail" type="email" required />
+
+        <label for="buyerQty">Cantidad</label>
+        <input id="buyerQty" name="buyerQty" type="number" min="1" value="1" required />
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="closeTicketDialog">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Confirmar compra</button>
+        </div>
+        <p class="form-feedback" id="ticketFeedback" aria-live="polite"></p>
+      </form>
+    </dialog>
+
+    <script src="app.js?v=20260406-1"></script>
+  </body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2k22 | Soporte</title>
+    <meta
+      name="description"
+      content="Soporte oficial de 2k22 con equipo administrativo y canales de contacto."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260406-1" />
+  </head>
+  <body>
+    <canvas id="colorBendsCanvas" class="color-bends" aria-hidden="true"></canvas>
+
+    <header class="site-header" id="inicio">
+      <nav class="nav" aria-label="Navegacion principal">
+        <a class="brand" href="index.html#inicio" aria-label="2k22 inicio">
+          <img
+            src="logo-2k22.png"
+            alt="Logo 2k22"
+            class="brand-logo"
+            onerror="this.onerror=null;this.src='logo-2k22.svg'"
+          />
+          <span class="brand-text">2k22</span>
+        </a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">Menu</button>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="index.html#inicio">Inicio</a></li>
+          <li><a href="events.html">Eventos</a></li>
+          <li><a href="support.html" class="active-link">Soporte</a></li>
+        </ul>
+      </nav>
+
+      <section class="hero">
+        <p class="eyebrow">2k22 support center</p>
+        <h1>Equipo administrativo y soporte oficial</h1>
+        <p class="hero-text">
+          Nuestro equipo esta disponible para ayudarte en entradas, cambios de eventos y consultas
+          generales.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#equipo">Ver equipo</a>
+          <a class="btn btn-ghost" href="#soporte">Ir a soporte</a>
+        </div>
+      </section>
+    </header>
+
+    <main>
+      <section class="section" id="equipo">
+        <div class="section-head">
+          <h2>Team administrativo</h2>
+          <p>Configurable desde el panel admin con foto de cada miembro.</p>
+        </div>
+        <div class="team-grid" id="teamGrid"></div>
+      </section>
+
+      <section class="section section-support" id="soporte">
+        <div class="section-head">
+          <h2>Soporte</h2>
+          <p>Escribenos y te responderemos con prioridad.</p>
+        </div>
+        <div class="support-layout">
+          <article class="support-card glass-card">
+            <h3>Contacto rapido</h3>
+            <p>Email: soporte@2k22events.com</p>
+            <p>Telefono: +34 900 123 456</p>
+            <p>Horario: Lunes a Domingo, 9:00 - 22:00</p>
+          </article>
+          <form id="supportForm" class="support-form glass-card">
+            <label for="supportName">Nombre</label>
+            <input id="supportName" name="name" type="text" placeholder="Tu nombre" required />
+
+            <label for="supportEmail">Email</label>
+            <input id="supportEmail" name="email" type="email" placeholder="tu@email.com" required />
+
+            <label for="supportMessage">Mensaje</label>
+            <textarea
+              id="supportMessage"
+              name="message"
+              rows="4"
+              placeholder="Cuentanos en que podemos ayudarte"
+              required
+            ></textarea>
+
+            <button class="btn btn-primary" type="submit">Enviar consulta</button>
+            <p class="form-feedback" id="supportFeedback" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>2k22 2026. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="app.js?v=20260406-1"></script>
+  </body>
+</html>
