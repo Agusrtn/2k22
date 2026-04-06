@@ -181,16 +181,16 @@ main,
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  width: 238px;
-  height: 60px;
+  width: 226px;
+  height: 56px;
   overflow: hidden;
 }
 
 .brand-logo {
-  width: 238px;
-  height: 60px;
+  width: 226px;
+  height: 56px;
   object-fit: cover;
-  object-position: center 50%;
+  object-position: center 45%;
   filter: drop-shadow(0 0 12px rgba(255, 122, 26, 0.45));
 }
 
@@ -923,15 +923,15 @@ textarea:focus {
   }
 
   .brand {
-    width: 168px;
-    height: 40px;
+    width: 156px;
+    height: 36px;
   }
 
   .brand-logo {
-    width: 168px;
-    height: 40px;
+    width: 156px;
+    height: 36px;
     object-fit: cover;
-    object-position: center 50%;
+    object-position: center 45%;
   }
 
   .nav {
