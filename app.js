@@ -173,6 +173,16 @@ function isAdminOrCreator(session) {
   return session.role === "admin" || session.role === "creator";
 }
 
+function isFixedCreatorAccount(user) {
+  if (!user) {
+    return false;
+  }
+  return (
+    String(user.name || "").toLowerCase() === CREATOR_ACCOUNT.name.toLowerCase() &&
+    String(user.email || "").toLowerCase() === CREATOR_ACCOUNT.email.toLowerCase()
+  );
+}
+
 function readUsers() {
   const raw = localStorage.getItem(USERS_KEY);
   if (!raw) {
@@ -1040,9 +1050,11 @@ function renderRoleSearchResults(query) {
 
   const users = readUsers();
   const normalizedQuery = query.toLowerCase();
-  const matches = users.filter((user) =>
-    user.name.toLowerCase().includes(normalizedQuery) || user.email.toLowerCase().includes(normalizedQuery)
-  );
+  const matches = !normalizedQuery
+    ? users
+    : users.filter((user) =>
+        user.name.toLowerCase().includes(normalizedQuery) || user.email.toLowerCase().includes(normalizedQuery)
+      );
 
   roleSearchResults.innerHTML = "";
 
@@ -1055,8 +1067,8 @@ function renderRoleSearchResults(query) {
     const row = document.createElement("article");
     row.className = "role-user-row";
 
-    const isCreatorUser = user.role === "creator";
-    const selectOptions = ["user", "admin"]
+    const isFixedCreatorUser = isFixedCreatorAccount(user);
+    const selectOptions = ["user", "admin", "creator"]
       .map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${role.toUpperCase()}</option>`)
       .join("");
 
@@ -1067,7 +1079,7 @@ function renderRoleSearchResults(query) {
         <p class="role-user-role">Rol actual: ${escapeHTML(user.role.toUpperCase())}</p>
       </div>
       ${
-        isCreatorUser
+        isFixedCreatorUser
           ? `<p class="role-user-role">Cuenta CREADOR fija</p>`
           : `<select data-user-id="${escapeHTML(user.id)}">${selectOptions}</select>
              <button type="button" class="btn btn-primary" data-assign-role="${escapeHTML(user.id)}">Guardar</button>`
@@ -1131,11 +1143,6 @@ function handleRoleSearchSubmit(event) {
 
   const data = new FormData(roleSearchForm);
   const query = String(data.get("query") || "").trim();
-
-  if (!query) {
-    setFeedback(roleSearchFeedback, "Escribe un nombre o email.", "error");
-    return;
-  }
 
   setFeedback(roleSearchFeedback, "", "");
   renderRoleSearchResults(query);

@@ -185,8 +185,8 @@
             <section id="creatorRoleBlock" class="admin-block creator-only">
               <h4>6) Gestion de roles (solo CREADOR)</h4>
               <form id="roleSearchForm" class="admin-inner-form">
-                <label for="roleSearch">Buscar usuario por nombre o email</label>
-                <input id="roleSearch" name="query" type="text" placeholder="ej: juan o juan@email.com" required />
+                <label for="roleSearch">Buscar usuario por nombre o email (vacio = todos)</label>
+                <input id="roleSearch" name="query" type="text" placeholder="ej: juan o juan@email.com" />
                 <button class="btn btn-ghost" type="submit">Buscar</button>
                 <p class="form-feedback" id="roleSearchFeedback" aria-live="polite"></p>
               </form>
@@ -234,6 +234,6 @@
       </form>
     </dialog>
 
-    <script src="app.js?v=20260406-5"></script>
+    <script src="app.js?v=20260406-7"></script>
   </body>
 </html>
