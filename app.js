@@ -335,6 +335,7 @@ function handleUserLoginSubmit(event) {
     return;
   }
 
+  const action = event.submitter?.value === "register" ? "register" : "login";
   const data = new FormData(userLoginForm);
   const inputName = String(data.get("name") || "").trim();
   const email = String(data.get("email") || "").trim().toLowerCase();
@@ -348,70 +349,49 @@ function handleUserLoginSubmit(event) {
   ensureCreatorAccount();
   const users = readUsers();
 
-  const isCreatorLogin = inputName === CREATOR_ACCOUNT.name && password === CREATOR_ACCOUNT.password;
-  if (isCreatorLogin) {
-    const creator = users.find((user) => user.name === CREATOR_ACCOUNT.name);
-    if (creator) {
-      saveUserSession({
-        name: creator.name,
-        email: creator.email,
-        role: creator.role,
-      });
-      setFeedback(userLoginFeedback, "Sesion iniciada como CREADOR.", "ok");
-      renderAuthState();
-      setTimeout(() => {
-        if (userLoginDialog) {
-          userLoginDialog.close();
-        }
-        userLoginForm.reset();
-        setFeedback(userLoginFeedback, "", "");
-      }, 250);
-      return;
-    }
-  }
-
   const existing = users.find((user) => user.email === email);
-  if (existing) {
-    if (existing.password !== password) {
-      setFeedback(userLoginFeedback, "Contrasena incorrecta.", "error");
+  if (action === "register") {
+    if (!inputName) {
+      setFeedback(userLoginFeedback, "Para crear cuenta, completa tambien el nombre.", "error");
       return;
     }
 
-    saveUserSession({
-      name: existing.name,
-      email: existing.email,
-      role: existing.role,
-    });
+    if (existing) {
+      setFeedback(userLoginFeedback, "Ya existe una cuenta con ese email. Inicia sesion.", "error");
+      return;
+    }
 
-    setFeedback(userLoginFeedback, "Sesion iniciada.", "ok");
-    renderAuthState();
-    setTimeout(() => {
-      if (userLoginDialog) {
-        userLoginDialog.close();
-      }
-      userLoginForm.reset();
-      setFeedback(userLoginFeedback, "", "");
-    }, 250);
+    const newUser = {
+      id: crypto.randomUUID(),
+      name: inputName,
+      email,
+      password,
+      role: "user",
+    };
+
+    users.push(newUser);
+    saveUsers(users);
+    setFeedback(userLoginFeedback, "Cuenta creada. Ahora pulsa Entrar para iniciar sesion.", "ok");
     return;
   }
 
-  const newUser = {
-    id: crypto.randomUUID(),
-    name: inputName || email.split("@")[0] || "Usuario",
-    email,
-    password,
-    role: "user",
-  };
+  if (!existing) {
+    setFeedback(userLoginFeedback, "No existe ninguna cuenta con ese email. Crea una cuenta primero.", "error");
+    return;
+  }
 
-  users.push(newUser);
-  saveUsers(users);
+  if (existing.password !== password) {
+    setFeedback(userLoginFeedback, "Contrasena incorrecta.", "error");
+    return;
+  }
+
   saveUserSession({
-    name: newUser.name,
-    email: newUser.email,
-    role: newUser.role,
+    name: existing.name,
+    email: existing.email,
+    role: existing.role,
   });
 
-  setFeedback(userLoginFeedback, "Cuenta creada e inicio de sesion completado.", "ok");
+  setFeedback(userLoginFeedback, "Sesion iniciada.", "ok");
   renderAuthState();
   setTimeout(() => {
     if (userLoginDialog) {
