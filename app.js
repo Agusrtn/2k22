@@ -260,6 +260,34 @@ function saveUserSession(session) {
   localStorage.setItem(USER_SESSION_KEY, JSON.stringify(session));
 }
 
+function reconcileSessionWithUsers() {
+  const session = readUserSession();
+  if (!session || !session.email) {
+    return;
+  }
+
+  const users = readUsers();
+  const idx = users.findIndex((user) => user.email === session.email);
+  if (idx >= 0) {
+    users[idx] = {
+      ...users[idx],
+      name: session.name || users[idx].name,
+      role: normalizeRole(session.role || users[idx].role),
+    };
+    saveUsers(users);
+    return;
+  }
+
+  users.push({
+    id: crypto.randomUUID(),
+    name: session.name || "Usuario",
+    email: session.email,
+    password: "",
+    role: normalizeRole(session.role),
+  });
+  saveUsers(users);
+}
+
 function clearUserSession() {
   localStorage.removeItem(USER_SESSION_KEY);
 }
@@ -1373,6 +1401,7 @@ on(closeUserLoginDialog, "click", () => {
 on(userLoginForm, "submit", handleUserLoginSubmit);
 
 ensureCreatorAccount();
+reconcileSessionWithUsers();
 renderAll();
 renderAuthState();
 initColorBendsBackground();
